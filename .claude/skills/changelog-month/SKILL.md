@@ -221,20 +221,26 @@ If an entry bundles two unrelated wins under one title (e.g. "dbt syntax highlig
      `, Month-to-Date` if partial).
    - Icon: `📋`.
 
-4. **Page structure (match the existing April / March / May pages):**
+4. **Page structure (every run, in this order — match the existing April / March / May pages):**
+
+   **Body:**
    - Header: product / period / tags row.
    - `## Purpose of this page` paragraph.
    - Optional `> What changed in this revision:` blockquote (for re-revisions).
    - Stats line — counts of new / improved / beta.
-   - `## 🆕 New Features` section.
-   - `## ✅ Improvements` section.
-   - `## 🧪 Beta` section (if any).
-   - `## Roles & sign-off` section (see below — non-negotiable).
-   - `## Next steps` section (see below — references the three checkboxes).
+   - `## 🆕 New Features` section — all `tag: new` entries.
+   - `## ✅ Improvements` section — all `tag: improved` entries.
+   - `## 🧪 Beta` section — all `tag: beta` entries (omit if none).
 
-   **`## Roles & sign-off` section content (paste verbatim — this defines the verification model the checkboxes enforce):**
+   **Footer (always include, always at the bottom, in this exact order — emit a `---` horizontal rule before the footer to separate it visually from the last entry):**
+   - `## Roles & sign-off` — paste the content block below **verbatim**. This is the verification model the per-entry checkboxes enforce. It is the contract the team agreed to; do not paraphrase.
+   - `## Next steps` — paste the content block below, substituting `<WINDOW>` and the optional refresh line. This is the run-book reviewers follow.
+
+   **`## Roles & sign-off` footer block (verbatim):**
 
    ```
+   ---
+
    ## Roles & sign-off
 
    Each entry needs **three sign-offs** before promotion. The **Owner** drives the process for their entries — gathering the SA review and Product review, applying any feedback, and ticking each checkbox once the corresponding sign-off is in.
@@ -244,7 +250,7 @@ If an entry bundles two unrelated wins under one title (e.g. "dbt syntax highlig
    - **Product** — reviews release-note quality through a marketing lens; flags anything that reads as engineering notes, lacks user benefit, or buries the headline.
    ```
 
-   **`## Next steps` section content (substitute `<WINDOW>` and any month-specific lines):**
+   **`## Next steps` footer block (substitute `<WINDOW>` and conditional refresh lines):**
 
    ```
    ## Next steps
@@ -259,6 +265,8 @@ If an entry bundles two unrelated wins under one title (e.g. "dbt syntax highlig
    5. **Promotion** (only when all three checkboxes are ticked on an entry): move that approved file from `generated/<WINDOW>/` → `entries/`, strip `draft: true`, open a PR against [AltimateAI/changelog](https://github.com/AltimateAI/changelog). Entries with mixed checkbox state stay in `generated/`.
    6. CI runs the schema validator (`.github/scripts/validate.py`) on every PR.
    ```
+
+   **Conditional lines in `## Next steps`:** keep step 3 only for weekly runs (drop for monthly), and step 4 only for monthly partial-month runs (drop for full-month and for weekly). Renumber if you drop either so the list stays sequential.
 
 5. **Per-entry section format (this is non-negotiable — every entry must have
    the Owners line + 3 checkboxes from the first creation):**
@@ -358,3 +366,5 @@ Direct, no "Certainly!" or "Great question!". Phase summaries are 1-3 sentences 
 - **Run end-to-end without checkpoints.** The fetch, triage, consolidation, and writing phases each need a human "yes" before continuing. Volume + irreversibility makes silent autonomy risky here.
 - **Commit `data/`** — the raw release/PR data from private repos. The `.gitignore` covers this, but double-check.
 - **Bundle two unrelated features into one entry** — reviewer feedback for April specifically flagged this.
+- **Skip the footer** (`## Roles & sign-off` + `## Next steps`) on the Notion page. Both are required on every run — they're the contract the team uses to coordinate sign-offs. Emit the horizontal rule before them so the boundary between entries and footer is visually clear.
+- **Paraphrase the `## Roles & sign-off` block.** The wording is the verification contract the team agreed to. Paste it verbatim.
