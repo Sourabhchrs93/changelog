@@ -3,3 +3,15 @@ __pycache__/
 *.pyc
 .venv/
 .lycheecache
+
+# Local commit-message scratch (referenced by general.md commit workflow)
+.github/meta/
+
+# Pipeline artifacts (raw release/PR data fetched from private repos)
+data/
+
+# Auto-generated polish drafts that include private PR refs in HTML comments.
+# Curated monthly drafts under generated/<month>/ are tracked explicitly.
+generated/*
+!generated/april-2026/
+!generated/*/
