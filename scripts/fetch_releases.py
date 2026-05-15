@@ -23,11 +23,17 @@ REPOS = [
     ("altimate-frontend", "AltimateAI/altimate-frontend", None),
     ("vscode-dbt-power-user", "AltimateAI/vscode-dbt-power-user", "dbt-power-user"),
     ("altimate-code", "AltimateAI/altimate-code", "altimate-code"),
+    ("altimate-core", "AltimateAI/altimate-core", "altimate-code"),
     ("altimate-mcp-engine", "AltimateAI/altimate-mcp-engine", "datamates"),
     ("vscode-altimate-mcp-server", "AltimateAI/vscode-altimate-mcp-server", "datamates"),
     ("altimate-dbt-snowflake-query-tags",
      "AltimateAI/altimate-dbt-snowflake-query-tags", "datamates"),
 ]
+
+# Repos whose release bodies don't list PRs (they're install/deploy artifacts).
+# For these, fall back to enumerating commits between consecutive tags via the
+# GitHub compare API and parsing PR numbers from commit messages.
+REPOS_NEEDING_COMPARE_FALLBACK = {"altimate-core"}
 
 PR_REF_RE = re.compile(r"https://github\.com/AltimateAI/[\w-]+/pull/(\d+)")
 # Format A (autogen): "* title by @author in https://github.com/.../pull/123"
@@ -39,6 +45,10 @@ PR_LINE_A_RE = re.compile(
 PR_LINE_B_RE = re.compile(
     r"^-\s+(?:[0-9a-f]{7,40}\s+)?(?P<title>.+?)\s+\(#(?P<num>\d+)\)"
     r"(?:\s+\([0-9a-f]{7,40}\))?\s*$"
+)
+# Commit-message PR references: "Merge pull request #123 from ..." or trailing "(#123)".
+COMMIT_PR_RE = re.compile(
+    r"(?:Merge pull request #|\(#)(?P<num>\d+)(?:\s+from\b|\)\s*$)"
 )
 
 
@@ -76,6 +86,49 @@ def fetch_release_body(repo: str, tag: str) -> str:
         repo,
     )
     return json.loads(raw).get("body", "") or ""
+
+
+def compare_prs(repo: str, prior_tag: str, current_tag: str) -> list[dict]:
+    """For repos whose release bodies don't carry PR refs, walk commits between
+    consecutive tags and extract PR numbers + first-line subjects from the
+    commit messages."""
+    cmd = [
+        "gh", "api", f"repos/{repo}/compare/{prior_tag}...{current_tag}",
+        "--jq", ".commits | map({sha: .sha, msg: .commit.message, author: .author.login})",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        sys.stderr.write(f"compare failed for {repo} {prior_tag}...{current_tag}: "
+                         f"{result.stderr.strip()[:120]}\n")
+        return []
+    try:
+        commits = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError:
+        return []
+    prs: list[dict] = []
+    seen: set[int] = set()
+    for c in commits:
+        msg = c.get("msg") or ""
+        first_line = msg.splitlines()[0] if msg else ""
+        m = COMMIT_PR_RE.search(first_line) or COMMIT_PR_RE.search(msg)
+        if not m:
+            continue
+        num = int(m.group("num"))
+        if num in seen:
+            continue
+        seen.add(num)
+        # Strip "Merge pull request ..." chrome and trailing "(#NNN)" to get a title
+        title = first_line
+        title = re.sub(r"^Merge pull request #\d+ from .*$", "", title).strip()
+        title = re.sub(r"\s*\(#\d+\)\s*$", "", title).strip()
+        if not title:
+            title = first_line  # fall back to the raw line
+        prs.append({
+            "number": num,
+            "title": title,
+            "author": c.get("author"),
+        })
+    return prs
 
 
 def parse_prs(body: str) -> list[dict]:
@@ -144,15 +197,26 @@ def main() -> None:
         sys.stderr.write(f"Listing releases for {repo}...\n")
         releases = list_releases(repo, since)
         sys.stderr.write(f"  {len(releases)} releases since {since.date()}\n")
+        use_compare_fallback = short_name in REPOS_NEEDING_COMPARE_FALLBACK
+
+        # gh release list returns newest-first; for compare-fallback we want
+        # consecutive (oldest→newest) so we can pass prior_tag to the API.
+        releases_oldest_first = sorted(
+            [r for r in releases
+             if args.include_freemium or not r["tagName"].startswith("freemium-")],
+            key=lambda r: r["publishedAt"],
+        )
 
         enriched = []
-        for r in releases:
+        prev_tag: str | None = None
+        for r in releases_oldest_first:
             tag = r["tagName"]
-            if not args.include_freemium and tag.startswith("freemium-"):
-                continue
             sys.stderr.write(f"  fetching {tag}...\n")
             body = fetch_release_body(repo, tag)
             prs = parse_prs(body)
+            if not prs and use_compare_fallback and prev_tag:
+                sys.stderr.write(f"    compare-fallback {prev_tag}...{tag}\n")
+                prs = compare_prs(repo, prev_tag, tag)
             enriched.append({
                 "tag": tag,
                 "name": r["name"],
@@ -163,6 +227,9 @@ def main() -> None:
                 "prs": prs,
                 "pr_count": len(prs),
             })
+            prev_tag = tag
+        # Restore newest-first ordering for downstream consumers
+        enriched.sort(key=lambda r: r["published_at"], reverse=True)
 
         result["repos"][short_name] = {
             "repo": repo,

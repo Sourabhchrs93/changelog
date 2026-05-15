@@ -1,6 +1,6 @@
 ---
 name: changelog-month
-description: Generate the full monthly changelog draft — fetch releases across all 7 source repos, triage features, consolidate clusters, write polished entries to generated/<month>/, validate, commit to a branch, and create a Notion review page. Use after a month closes to produce ~15-25 draft entries for team review. Invoke as `/changelog-month 2026-04` or `/changelog-month` and answer prompts.
+description: Generate the full monthly changelog draft — fetch releases across all 8 source repos, triage features, consolidate clusters, write polished entries to generated/<month>/, validate, commit to a branch, and create a Notion review page. Use after a month closes to produce ~15-25 draft entries for team review. Invoke as `/changelog-month 2026-04` or `/changelog-month` and answer prompts.
 ---
 
 # Monthly changelog draft
@@ -43,6 +43,8 @@ Resolve the date window:
 ## Phase 2 — Fetch releases + PR bodies
 
 1. Run `scripts/fetch_releases.py --since <WINDOW_START> --out data/releases_<month>.json`. Note the per-repo release counts — if any repo returns 0 for a full month, flag it (might indicate a fetch regression).
+   - **Sources in scope (8 repos):** `altimate-backend`, `altimate-frontend`, `vscode-dbt-power-user`, `altimate-code`, `altimate-core`, `altimate-mcp-engine`, `vscode-altimate-mcp-server`, `altimate-dbt-snowflake-query-tags`. The full list with primary-product mapping lives in `scripts/fetch_releases.py::REPOS`.
+   - **`altimate-core` is a published library** (powers Altimate Code's SQL engine). Its release bodies are install/deploy artifacts, not PR lists. The fetcher uses the `REPOS_NEEDING_COMPARE_FALLBACK` set + GitHub compare API to enumerate PRs between consecutive tags from commit messages — same downstream shape, just sourced differently. Don't be surprised by low PR counts; altimate-core typically only sees a handful of feature PRs per release.
 2. Run `scripts/fetch_pr_bodies.py --releases data/releases_<month>.json --out data/prs_<month>.json --workers 8`. Use `run_in_background` if expected total > 500 PRs — the GraphQL fetch is ~12 PRs/sec.
 3. Print totals: releases per repo, total PRs.
 4. Ask: "Fetched N releases / M PRs. Proceed to triage?"
@@ -78,6 +80,7 @@ Before writing entries, group SHIP+approved-REVIEW into **feature clusters**. Th
 | **Subscriptions enhancements** | webhook delivery, clone alert, team-as-entity, same-weekday comparison, searchable tags, default schedule change, test-notification — combine |
 | **Cortex AI services** | usage history additions for new Cortex surfaces, warehouse-name fix — combine |
 | **Altimate Code subsystem release** | new commands + new providers + new drivers + skill system updates in same window — one entry per subsystem (commands / providers / drivers / skills / TUI polish) |
+| **Altimate Code SQL engine (`altimate-core`)** | new lint rules, new validators, new safety checks, new PII detectors — combine per category. Many altimate-core releases are version bumps with no shippable feature content; only write an entry when there's a customer-visible change. |
 | **dbt 1.11 UDF lineage** | cross-repo backend MCP + extension lineage view — one entry |
 | **Referral program** | signup UI + backend credit grant + admin codes page — one entry |
 | **Email + report redesigns** | template + delivery + content — combine if same week |

@@ -27,6 +27,7 @@ REPO_MAP = {
     "altimate-frontend": "AltimateAI/altimate-frontend",
     "vscode-dbt-power-user": "AltimateAI/vscode-dbt-power-user",
     "altimate-code": "AltimateAI/altimate-code",
+    "altimate-core": "AltimateAI/altimate-core",
     "altimate-mcp-engine": "AltimateAI/altimate-mcp-engine",
     "vscode-altimate-mcp-server": "AltimateAI/vscode-altimate-mcp-server",
     "altimate-dbt-snowflake-query-tags": "AltimateAI/altimate-dbt-snowflake-query-tags",
