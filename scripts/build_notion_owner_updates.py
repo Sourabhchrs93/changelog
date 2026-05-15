@@ -4,6 +4,34 @@ entry on the April / March / May Notion review pages.
 
 Output (one file per month, suitable for piping to notion-update-page):
   /tmp/notion_owner_updates_<month>.json
+
+────────────────────────────────────────────────────────────────────────────
+MAINTENANCE NOTE — this file is mutated by the `/changelog-month` skill.
+────────────────────────────────────────────────────────────────────────────
+The `LOGIN_TO_USER` map below is **not a static fixture**. The skill
+extends it on every run (monthly or weekly) when it encounters a new
+GitHub author who isn't already mapped. Skill Phase 8 step 2 is the
+canonical update flow:
+
+  1. Skill runs `notion-search` with `query_type="user"` and a name query.
+  2. The compressed `{{user://<dashed-uuid>}}` URL comes back.
+  3. The skill appends `"<github-login>": ("Display Name", "<dashed-uuid>")`
+     here.
+
+What this means in practice:
+  - Do not hand-edit entries the skill is about to add — let the skill
+    produce the canonical line on its next run, then take that diff.
+  - Do not delete entries for people who have left the workspace; the
+    historical Notion-page-update operations referenced them and the
+    map is part of the audit trail. The skill drops them from new
+    mentions automatically (the `notion-search` lookup returns empty).
+  - The `Excluded:` list below tracks bots and external contributors
+    encountered so far. New externals (no Notion workspace match) get
+    surfaced as plain-text `` `@<login>` (external) `` in entry
+    Owners lines — the skill does not add them here.
+
+See `.claude/skills/changelog-month/SKILL.md` Phase 8 for the full
+contract this script implements.
 """
 
 from __future__ import annotations
@@ -17,6 +45,10 @@ ROOT = Path(__file__).resolve().parent.parent
 # Resolved from `notion-get-users` against the AltimateAI workspace.
 # Excluded: app/altimate-harness-bot (bot), VJ-yadav / sahrizvi / tsekityam
 # (no Notion workspace match — external contributors).
+#
+# The `/changelog-month` skill appends new (login, name, uuid) tuples here
+# on each run that surfaces a new contributor — do not hand-edit unless
+# you know the skill won't touch the same line on its next pass.
 LOGIN_TO_USER = {
     "Sourabhchrs93":        ("Sourabh Chourasia",   "1d6d872b-594c-8183-9084-000254ebed49"),
     "Bharatram-altimate-ai":("Bharatram Natarajan", "2a0d872b-594c-8176-9978-0002655178b6"),
@@ -40,6 +72,10 @@ LOGIN_TO_USER = {
 
 # PR_MAP duplicated from extract_owners.py — the source-PR lists used in each
 # entry, needed to build the exact `**Source PRs:** ...` anchor string.
+#
+# Like LOGIN_TO_USER above, this map is appended to by the `/changelog-month`
+# skill on each run. Keep the two PR_MAP copies (here and in extract_owners.py)
+# in sync; the skill updates both as part of the same Phase 8 pass.
 PR_MAP = {
     # April
     "2026-04-01-dbt-1-11-udf-lineage-in-mcp": [("altimate-mcp-engine", 179)],

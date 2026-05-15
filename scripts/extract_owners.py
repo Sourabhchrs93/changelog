@@ -14,6 +14,27 @@ lives in the Notion-page-assembly scripts).
 
 Writes:
   data/owners_by_entry.json — {slug: [author_login, ...]}
+
+────────────────────────────────────────────────────────────────────────────
+MAINTENANCE NOTE — this file is mutated by the `/changelog-month` skill.
+────────────────────────────────────────────────────────────────────────────
+The `PR_MAP` constant below is **not a static fixture**. The skill appends
+new entries to it on every run (monthly or weekly) as it consolidates new
+feature clusters. Each new draft slug → [(repo, pr_number), …] gets added
+when the skill writes a new entry to `generated/<WINDOW>/<slug>.md`.
+
+What this means in practice:
+  - Do not hand-edit `PR_MAP` for a slug the skill is about to add — let
+    the skill produce the canonical entry on its next run, then take that
+    diff.
+  - Do not delete `PR_MAP` entries for past months. They're the audit
+    trail the Notion-assembly scripts read when patching pages.
+  - If you spot a wrong PR mapping, fix the source-of-truth in the
+    per-month Notion-assembly script first; this map will reconcile on
+    the next skill run.
+
+See `.claude/skills/changelog-month/SKILL.md` Phase 8 for the canonical
+update flow.
 """
 
 from __future__ import annotations

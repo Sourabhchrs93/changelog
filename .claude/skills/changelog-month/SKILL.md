@@ -202,18 +202,33 @@ If an entry bundles two unrelated wins under one title (e.g. "dbt syntax highlig
    feature's PR list (the `PR_MAP` constant inside the script) determines its
    owners, so keep that map in lockstep with the entries written in Phase 5.
 
+   **Skill writes back to `PR_MAP`.** For every new slug added to
+   `generated/<WINDOW>/` in Phase 5, append a corresponding
+   `"slug": [(repo, pr_number), ...]` entry to **both**
+   `scripts/extract_owners.py::PR_MAP` and
+   `scripts/build_notion_owner_updates.py::PR_MAP` (they're duplicated by
+   design — one feeds the other). The maintenance note at the top of
+   each script documents that these maps are skill-mutated, not static.
+
 2. **Map GitHub logins → Notion user IDs.** The current mapping lives in
    `scripts/build_notion_owner_updates.py::LOGIN_TO_USER`. For each unique
    author that isn't already in the dict, look them up:
    - Use `notion-search` with `query_type="user"` and `query="<First Last>"`.
      The result contains the URL in the form `{{user://<dashed-uuid>}}` —
      that's the URL form `<mention-user>` requires.
-   - Add a new entry to the dict: `"github-login": ("Display Name", "<dashed-uuid>")`.
-   - **Excluded categories** (never @-mentioned):
+   - **Append a new entry** to `LOGIN_TO_USER`:
+     `"github-login": ("Display Name", "<dashed-uuid>")`. The map header
+     comment calls out that the skill is the one that maintains it.
+   - **Excluded categories** (never @-mentioned, never added to `LOGIN_TO_USER`):
      - **Bots**: logins matching `app/*` or ending with `[bot]`. Drop silently.
      - **External contributors**: GitHub authors with no Notion workspace user.
        Show as plain text `` `@<login>` (external) `` so the team can see they
        were involved, but no notification fires.
+
+   **Persisting the map updates.** When the skill appends to `PR_MAP` or
+   `LOGIN_TO_USER`, commit those changes as part of the Phase 7 commit
+   on the per-window branch. The script files are tracked; the maps
+   they hold are the audit trail across runs.
 
 3. **Use the `mcp__claude_ai_Notion__notion-create-pages` tool.**
    - Parent page ID: `31941b8929268119a3dbe8587a516284` (Product Change Logs).
