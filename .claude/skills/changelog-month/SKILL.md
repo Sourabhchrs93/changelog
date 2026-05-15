@@ -229,7 +229,36 @@ If an entry bundles two unrelated wins under one title (e.g. "dbt syntax highlig
    - `## 🆕 New Features` section.
    - `## ✅ Improvements` section.
    - `## 🧪 Beta` section (if any).
-   - `## Next steps` with reviewer instructions.
+   - `## Roles & sign-off` section (see below — non-negotiable).
+   - `## Next steps` section (see below — references the three checkboxes).
+
+   **`## Roles & sign-off` section content (paste verbatim — this defines the verification model the checkboxes enforce):**
+
+   ```
+   ## Roles & sign-off
+
+   Each entry needs **three sign-offs** before promotion. The **Owner** drives the process for their entries — gathering the SA review and Product review, applying any feedback, and ticking each checkbox once the corresponding sign-off is in.
+
+   - **Owner** — verifies the description matches what shipped (correctness vs implementation). Owns the entry end-to-end through promotion.
+   - **SA** — verifies the feature works as described; adds a screenshot or short Loom/YouTube video if the feature is UI-visible.
+   - **Product** — reviews release-note quality through a marketing lens; flags anything that reads as engineering notes, lacks user benefit, or buries the headline.
+   ```
+
+   **`## Next steps` section content (substitute `<WINDOW>` and any month-specific lines):**
+
+   ```
+   ## Next steps
+
+   1. **Owners**: review your entries (search this page for your @-mention). For each entry you own:
+      - Confirm the description matches what shipped → tick `is_owner_verified`.
+      - Loop in the SA on Slack with the entry link → they test, add media if needed, tick `is_sa_verified`.
+      - Loop in Product with the entry link → they review for release-note quality, tick `is_product_verified`.
+   2. **Apply feedback** to draft files on branch `feat/<WINDOW>-changelog-drafts` in the changelog repo. Notion comments on the section are the source of truth.
+   3. (Weekly only) **End-of-week refresh**: if any PRs land late, re-run the pipeline for the same window and update this page in place.
+   4. (Monthly partial-month only) **End-of-month refresh**: re-run the pipeline after the month closes to pick up remaining days, and update this page in place.
+   5. **Promotion** (only when all three checkboxes are ticked on an entry): move that approved file from `generated/<WINDOW>/` → `entries/`, strip `draft: true`, open a PR against [AltimateAI/changelog](https://github.com/AltimateAI/changelog). Entries with mixed checkbox state stay in `generated/`.
+   6. CI runs the schema validator (`.github/scripts/validate.py`) on every PR.
+   ```
 
 5. **Per-entry section format (this is non-negotiable — every entry must have
    the Owners line + 3 checkboxes from the first creation):**
@@ -304,10 +333,15 @@ Notion: https://www.notion.so/<page-id>
 Headlines:
   - <one line per major cluster>
 
+Three-role sign-off model:
+  - Owner — verifies correctness vs implementation; drives sign-offs for the entry end-to-end
+  - SA — tests the feature; adds screenshot or Loom/YouTube video if UI-visible
+  - Product — reviews release-note quality through a marketing lens
+
 Next:
-  1. Team reviews Notion page and ticks the per-entry checkboxes (is_owner_verified / is_sa_verified / is_product_verified)
+  1. Owners loop in SA and Product per entry; each role ticks its own checkbox
   2. Apply reviewer feedback to draft files
-  3. When all 3 checkboxes are ticked: move files to entries/, strip draft:true, open PR
+  3. When all 3 checkboxes are ticked on an entry: move that file to entries/, strip draft:true, open PR (entries promote per-row, not as a batch)
 ```
 
 ## Voice for your responses
